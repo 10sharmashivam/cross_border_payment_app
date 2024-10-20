@@ -1,15 +1,21 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 from flytekit.remote import FlyteRemote
 from flytekit.configuration import Config
 
 app = Flask(__name__)
 
-# Initialize Flyte remote
+# Initialize Flyte remote connection
 remote = FlyteRemote(
     Config.for_sandbox(),
     default_project="payment_project",
     default_domain="development"
 )
+
+@app.route('/')
+def home():
+    return render_template('index.html')
+"Welcome to the Cross-Border Payment Gateway!"
+# render_template('index.html')
 
 @app.route('/pay', methods=['POST'])
 def process_payment():
