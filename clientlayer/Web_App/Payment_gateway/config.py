@@ -1,6 +1,6 @@
 import os
 
 class Config:
-    SECRET_KEY = os.getenv('SECRET_KEY', 'mysecret')
-    SQLALCHEMY_DATABASE_URI = 'sqlite:///database.db'  # Use SQLite
-    SQLALCHEMY_TRACK_MODIFICATIONS = False
+    SECRET_KEY = os.environ.get('SECRET_KEY') or 'super_secret_key'
+    FLYTE_PROJECT = 'payment_project'
+    FLYTE_DOMAIN = 'development'
