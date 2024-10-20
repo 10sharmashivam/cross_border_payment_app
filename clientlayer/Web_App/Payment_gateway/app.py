@@ -1,14 +1,29 @@
-from flask import Flask
-from config import Config
-from flask_sqlalchemy import SQLAlchemy
+from flask import Flask, request, jsonify
+from flytekit.remote import FlyteRemote
+from flytekit.configuration import Config
 
-# Initialize Flask app and database
 app = Flask(__name__)
-app.config.from_object(Config)
-db = SQLAlchemy(app)
 
-from routes import *
+# Initialize Flyte remote
+remote = FlyteRemote(
+    Config.for_sandbox(),
+    default_project="payment_project",
+    default_domain="development"
+)
 
-if __name__ == "__main__":
-    db.create_all()  # Create database tables
+@app.route('/pay', methods=['POST'])
+def process_payment():
+    data = request.json
+    try:
+        # Call Flyte workflow for payment processing
+        execution = remote.execute(
+            remote.fetch_workflow('payment_processing', 'payment_workflow'),
+            inputs={'transaction_data': data}
+        )
+        result = remote.wait(execution)
+        return jsonify({"status": "success", "result": result.outputs['status']})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+if __name__ == '__main__':
     app.run(debug=True)

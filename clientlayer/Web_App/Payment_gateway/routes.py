@@ -1,66 +1,20 @@
-from flask import request, jsonify
-from app import app, db
-from models import Transaction
+from flask import Blueprint, jsonify, request
+from models import db, Transaction
 
-@app.route('/')
-def index():
-    return jsonify({"message": "Welcome to the Payment Gateway!"})
+payment_routes = Blueprint('payments', __name__)
 
-# API to process payment
-@app.route('/api/payment', methods=['POST'])
-def process_payment():
-    data = request.get_json()
+@payment_routes.route('/status/<transaction_id>', methods=['GET'])
+def check_status(transaction_id):
+    transaction = Transaction.query.get(transaction_id)
+    if transaction:
+        return jsonify({'status': transaction.status})
+    else:
+        return jsonify({'error': 'Transaction not found'}), 404
 
-    # Extract payment details from the request
-    sender = data.get('sender')
-    receiver = data.get('receiver')
-    amount = data.get('amount')
-    currency = data.get('currency')
-
-    # Validate transaction
-    if not all([sender, receiver, amount, currency]):
-        return jsonify({"error": "Missing required payment details"}), 400
-
-    try:
-        amount = float(amount)
-    except ValueError:
-        return jsonify({"error": "Invalid amount format"}), 400
-
-    if amount <= 0:
-        return jsonify({"error": "Amount must be greater than zero"}), 400
-
-    # Simulate processing and create a new transaction
-    new_transaction = Transaction(
-        sender=sender,
-        receiver=receiver,
-        amount=amount,
-        currency=currency,
-        status="Pending"
-    )
-
-    # Add to database
-    db.session.add(new_transaction)
-    db.session.commit()
-
-    return jsonify({
-        "message": "Payment processed successfully",
-        "transaction_id": new_transaction.id,
-        "status": new_transaction.status
-    }), 201
-
-# API to get all transactions
-@app.route('/api/transactions', methods=['GET'])
-def get_transactions():
-    transactions = Transaction.query.all()
-    result = []
-    for txn in transactions:
-        result.append({
-            "id": txn.id,
-            "sender": txn.sender,
-            "receiver": txn.receiver,
-            "amount": txn.amount,
-            "currency": txn.currency,
-            "status": txn.status,
-            "timestamp": txn.timestamp
-        })
-    return jsonify(result)
+@payment_routes.route('/history/<user_id>', methods=['GET'])
+def payment_history(user_id):
+    transactions = Transaction.query.filter_by(user_id=user_id).all()
+    if transactions:
+        return jsonify([t.as_dict() for t in transactions])
+    else:
+        return jsonify({'error': 'No transactions found for user'}), 404
